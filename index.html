@@ -57,6 +57,9 @@
 
   .cat{display:flex;align-items:center;gap:7px;padding:18px 18px 7px;font-size:13px;font-weight:600;letter-spacing:.3px;color:var(--cat);}
   .cat .cnt{margin-left:auto;font-weight:500;color:var(--muted);}
+  .swipe{position:relative;margin:0 14px 6px;border-radius:14px;touch-action:pan-y;}
+  .swipe-bg{position:absolute;inset:0;border-radius:14px;background:var(--danger);color:#fff;display:flex;align-items:center;justify-content:flex-end;gap:8px;padding-right:18px;font-size:14px;font-weight:600;opacity:0;}
+  .swipe .it{margin:0;position:relative;will-change:transform;}
   .it{display:flex;align-items:center;gap:12px;margin:0 14px 6px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:11px 14px;font-size:16px;min-height:50px;}
   .ck{width:26px;height:26px;border-radius:50%;border:2px solid var(--navy);flex:0 0 auto;display:flex;align-items:center;justify-content:center;color:#fff;}
   .it .nm{flex:1;min-width:0;overflow-wrap:anywhere;}
@@ -110,7 +113,8 @@
   .who button:active{border-color:var(--navy);}
   .who .av{width:52px;height:52px;border-radius:50%;background:var(--navy);color:#fff;margin:0 auto 10px;display:flex;align-items:center;justify-content:center;font-size:20px;}
 
-  .toast{position:fixed;left:50%;top:calc(env(safe-area-inset-top) + 14px);transform:translateX(-50%);background:var(--navy);color:#fff;padding:11px 18px;border-radius:22px;font-size:14px;z-index:80;box-shadow:0 6px 20px rgba(20,35,55,.25);white-space:nowrap;}
+  .toast{position:fixed;left:50%;top:calc(env(safe-area-inset-top) + 14px);transform:translateX(-50%);background:var(--navy);color:#fff;padding:11px 18px;border-radius:22px;font-size:14px;z-index:80;box-shadow:0 6px 20px rgba(20,35,55,.25);white-space:nowrap;display:flex;align-items:center;gap:14px;}
+  .toast button{color:var(--sky);font-weight:600;font-size:14px;text-decoration:underline;}
 </style>
 </head>
 <body>
@@ -349,6 +353,48 @@ function ShareSheet({ text, onClose, toast }){
   </div>;
 }
 
+// ---------- Vegen om te verwijderen ----------
+// Naar links vegen toont "Verwijderen"; voorbij ~35% loslaten = weg. Verticaal scrollen blijft werken.
+function SwipeRow({ onDelete, children }){
+  const [dx, setDx] = useState(0);
+  const [anim, setAnim] = useState(false);
+  const st = useRef(null);
+  const moved = useRef(false);
+  const rowRef = useRef(null);
+  function down(e){
+    if (e.pointerType === "mouse" && e.button !== 0) return;
+    st.current = { x:e.clientX, y:e.clientY, id:e.pointerId, lock:null };
+    moved.current = false; setAnim(false);
+  }
+  function move(e){
+    const s0 = st.current; if (!s0 || s0.id !== e.pointerId) return;
+    const mx = e.clientX - s0.x, my = e.clientY - s0.y;
+    if (!s0.lock){
+      if (Math.abs(mx) < 8 && Math.abs(my) < 8) return;
+      s0.lock = Math.abs(mx) > Math.abs(my) ? "h" : "v";
+      if (s0.lock === "h") { try { e.currentTarget.setPointerCapture(e.pointerId); } catch (_) {} }
+    }
+    if (s0.lock !== "h") return;
+    moved.current = true;
+    setDx(Math.min(0, mx));
+  }
+  function up(){
+    const s0 = st.current; st.current = null;
+    if (!s0 || s0.lock !== "h") return;
+    const w = rowRef.current ? rowRef.current.offsetWidth : 320;
+    setAnim(true);
+    if (dx < -w * 0.35){ setDx(-w - 20); setTimeout(onDelete, 180); }
+    else setDx(0);
+  }
+  const w = rowRef.current ? rowRef.current.offsetWidth : 320;
+  return <div className="swipe" ref={rowRef}
+    onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up}
+    onClickCapture={e => { if (moved.current){ e.stopPropagation(); e.preventDefault(); moved.current = false; } }}>
+    <div className="swipe-bg" style={{opacity: Math.min(1, -dx / 60)}}><Icon name="trash" size={18}/>{-dx > w * 0.35 ? "Loslaten" : "Verwijderen"}</div>
+    {React.cloneElement(children, { style:{ transform:`translateX(${dx}px)`, transition: anim ? "transform .18s ease" : "none" } })}
+  </div>;
+}
+
 // ---------- App ----------
 function App(){
   const [ok, setOk] = useState(localStorage.getItem('bs_ok') === '1');
@@ -365,7 +411,7 @@ function App(){
   const toastT = useRef(null);
   const loadT = useRef(null);
 
-  function toast(m){ setToastMsg(m); clearTimeout(toastT.current); toastT.current = setTimeout(() => setToastMsg(''), 2200); }
+  function toast(m, action){ setToastMsg({ m, action }); clearTimeout(toastT.current); toastT.current = setTimeout(() => setToastMsg(''), action ? 4500 : 2200); }
   useEffect(() => { try { localStorage.setItem('bs_tab', tab); } catch (e) {} }, [tab]);
 
   async function load(){
@@ -435,7 +481,14 @@ function App(){
   }
   async function deleteItem(item){
     setItems(its => its.filter(i => i.id !== item.id));
+    toast(`${item.name} verwijderd`, { label:'Ongedaan maken', fn:() => restoreItem(item) });
     await db.from(T_ITEMS).delete().eq('id', item.id);
+  }
+  async function restoreItem(item){
+    const { id, ...rest } = item;
+    setItems(its => [...its, item]);
+    await db.from(T_ITEMS).insert(rest);
+    load();
   }
   function switchWho(){
     const n = who === 'E' ? 'S' : 'E';
@@ -485,7 +538,7 @@ function App(){
       <div className="cat"><Icon name={c.icon} size={17}/>{c.label}{open.length > 0 && <span className="cnt">{open.length}</span>}</div>
       {[...open, ...done].map(i => {
         const left = i.done_at ? Math.min(24, Math.max(1, Math.ceil((KEEP_MS - (now - Date.parse(i.done_at))) / 3600000))) : 0;
-        return <div key={i.id} className={'it' + (i.done_at ? ' done' : '')}>
+        return <SwipeRow key={i.id} onDelete={() => deleteItem(i)}><div className={'it' + (i.done_at ? ' done' : '')}>
           <button className="ck" onClick={() => toggle(i)} aria-label={i.done_at ? 'Terug op de lijst' : 'Afvinken'}>
             {i.done_at && <Icon name="check" size={15} sw={2.8}/>}
           </button>
@@ -493,11 +546,11 @@ function App(){
             {i.qty > 1 && <span className="qty">{i.qty}×</span>}{i.name}
           </div>
           <span className="meta">{i.done_at ? `nog ${left}u` : (tab === 'samen' ? (i.added_by || '') : '')}</span>
-        </div>;
+        </div></SwipeRow>;
       })}
     </div>)}
 
-    {loaded && groups.length > 0 && <div className="foot">Tik op een artikel om het te wijzigen. Afgevinkte artikels verdwijnen na 24 uur.</div>}
+    {loaded && groups.length > 0 && <div className="foot">Tik op een artikel om het te wijzigen, veeg naar links om te verwijderen. Afgevinkte artikels verdwijnen na 24 uur.</div>}
 
     {sheet && <ItemSheet key={sheet.item ? sheet.item.id : 'new'} mode={sheet.mode} item={sheet.item} list={tab} memory={memory}
       onAdd={addItem}
@@ -506,7 +559,7 @@ function App(){
       onDelete={() => deleteItem(sheet.item)}
       onClose={() => setSheet(null)} />}
     {shareOpen && <ShareSheet text={buildShareText('mama', listItems)} onClose={() => setShareOpen(false)} toast={toast} />}
-    {toastMsg && <div className="toast">{toastMsg}</div>}
+    {toastMsg && <div className="toast">{toastMsg.m}{toastMsg.action && <button onClick={() => { toastMsg.action.fn(); setToastMsg(''); }}>{toastMsg.action.label}</button>}</div>}
   </div>;
 }
 
