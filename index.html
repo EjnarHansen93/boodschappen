@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-title" content="Boodschappen" />
 <link rel="manifest" href="./manifest.webmanifest" />
 <link rel="apple-touch-icon" href="./icon-512.png" />
-<link rel="icon" href="./icon.svg" type="image/svg+xml" />
+<link rel="icon" href="./icon-512.png" type="image/png" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&display=swap" rel="stylesheet" />
@@ -35,7 +35,8 @@
   .app{max-width:480px;margin:0 auto;min-height:100vh;background:var(--bg);padding-bottom:40px;position:relative;}
 
   .hdr{background:var(--sky);padding:calc(env(safe-area-inset-top) + 16px) 18px 16px;display:flex;align-items:center;gap:12px;}
-  .logo{width:42px;height:42px;border-radius:50%;border:1.5px solid var(--navy);display:flex;align-items:center;justify-content:center;color:var(--navy);flex:0 0 auto;}
+  .logo{width:44px;height:44px;border-radius:11px;flex:0 0 auto;display:block;box-shadow:0 0 0 1px rgba(31,58,95,.18);}
+  .logo.big{width:96px;height:96px;border-radius:22px;box-shadow:0 8px 24px rgba(31,58,95,.18);}
   .hdr h1{margin:0;font-size:30px;line-height:1;font-weight:600;color:var(--navy);}
   .hdr .sub{font-size:13px;color:#4E6687;margin-top:3px;display:flex;align-items:center;gap:6px;}
   .dot{width:7px;height:7px;border-radius:50%;background:#3E8E6A;display:inline-block;}
@@ -233,7 +234,7 @@ function Gate({ needCode, onDone }){
   }
   function pick(k){ localStorage.setItem('bs_who', k); onDone(k); }
   return <div className="app"><div className="gate">
-    <div className="logo" style={{width:84,height:84,borderWidth:2}}><Icon name="cart" size={44} sw={1.6}/></div>
+    <img className="logo big" src="./icon-512.png" alt="" />
     <h1 className="serif">Boodschappen</h1>
     {step === 'code' ? <>
       <p>Geef jullie code in</p>
@@ -455,7 +456,7 @@ function App(){
 
   return <div className="app">
     <div className="hdr">
-      <div className="logo"><Icon name="cart" size={22}/></div>
+      <img className="logo" src="./icon-512.png" alt="" />
       <div>
         <h1 className="serif">Boodschappen</h1>
         <div className="sub"><span className={'dot' + (live ? '' : ' off')}/>{live ? 'gedeeld · live' : 'verbinden…'}</div>
