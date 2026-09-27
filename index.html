@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
+<title>Boodschappen</title>
+<meta name="theme-color" content="#A9C4E0" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="default" />
+<meta name="apple-mobile-web-app-title" content="Boodschappen" />
+<link rel="manifest" href="./manifest.webmanifest" />
+<link rel="apple-touch-icon" href="./icon-512.png" />
+<link rel="icon" href="./icon.svg" type="image/svg+xml" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&display=swap" rel="stylesheet" />
+
+<script src="https://cdn.jsdelivr.net/npm/react@18/umd/react.production.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@babel/standalone/babel.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+
+<style>
+  :root{
+    --sky:#A9C4E0; --sky-l:#DCE7F3; --navy:#1F3A5F; --navy-2:#2B4A73;
+    --bg:#F2F6FB; --card:#FFFFFF; --ink:#2E4260; --muted:#8193AB; --cat:#5F7FA6;
+    --line:#D6E2EF; --done:#AEB7C4; --danger:#B4485A;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;background:#DDE6F0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;color:var(--ink);}
+  button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit;padding:0;}
+  input{font-family:inherit;}
+  .serif{font-family:"Cormorant Garamond",Georgia,serif;}
+  .app{max-width:480px;margin:0 auto;min-height:100vh;background:var(--bg);padding-bottom:40px;position:relative;}
+
+  .hdr{background:var(--sky);padding:calc(env(safe-area-inset-top) + 16px) 18px 16px;display:flex;align-items:center;gap:12px;}
+  .logo{width:42px;height:42px;border-radius:50%;border:1.5px solid var(--navy);display:flex;align-items:center;justify-content:center;color:var(--navy);flex:0 0 auto;}
+  .hdr h1{margin:0;font-size:30px;line-height:1;font-weight:600;color:var(--navy);}
+  .hdr .sub{font-size:13px;color:#4E6687;margin-top:3px;display:flex;align-items:center;gap:6px;}
+  .dot{width:7px;height:7px;border-radius:50%;background:#3E8E6A;display:inline-block;}
+  .dot.off{background:#C08A2E;}
+  .me{margin-left:auto;width:36px;height:36px;border-radius:50%;background:var(--navy);color:#fff;font-weight:600;font-size:15px;display:flex;align-items:center;justify-content:center;}
+
+  .tabs{display:flex;gap:6px;padding:12px 14px 4px;}
+  .tab{flex:1;padding:10px 0;border-radius:22px;font-size:15px;font-weight:600;color:var(--navy);text-align:center;}
+  .tab.on{background:var(--navy);color:#fff;}
+  .tab .n{font-weight:500;opacity:.7;margin-left:4px;font-size:13px;}
+
+  .actions{display:flex;gap:8px;padding:8px 14px 2px;}
+  .btn{display:flex;align-items:center;justify-content:center;gap:8px;border-radius:24px;padding:13px 16px;font-size:16px;font-weight:600;}
+  .btn.primary{background:var(--navy);color:#fff;flex:1;}
+  .btn.primary:active{background:var(--navy-2);}
+  .btn.ghost{border:1.5px solid var(--navy);color:var(--navy);}
+  .btn.ghost:active{background:var(--sky-l);}
+
+  .cat{display:flex;align-items:center;gap:7px;padding:18px 18px 7px;font-size:13px;font-weight:600;letter-spacing:.3px;color:var(--cat);}
+  .cat .cnt{margin-left:auto;font-weight:500;color:var(--muted);}
+  .it{display:flex;align-items:center;gap:12px;margin:0 14px 6px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:11px 14px;font-size:16px;min-height:50px;}
+  .ck{width:26px;height:26px;border-radius:50%;border:2px solid var(--navy);flex:0 0 auto;display:flex;align-items:center;justify-content:center;color:#fff;}
+  .it .nm{flex:1;min-width:0;overflow-wrap:anywhere;}
+  .it .qty{color:var(--cat);font-weight:600;margin-right:4px;}
+  .it .meta{font-size:12px;color:#A3B0C2;flex:0 0 auto;}
+  .it.done .nm{color:var(--done);text-decoration:line-through;}
+  .it.done .qty{color:var(--done);}
+  .it.done .ck{background:var(--done);border-color:var(--done);}
+  .it.done{background:#F7F9FC;}
+
+  .empty{text-align:center;padding:56px 30px 20px;color:var(--muted);}
+  .empty .serif{font-size:26px;color:var(--navy);margin:12px 0 6px;}
+  .foot{text-align:center;font-size:12px;color:#A3B0C2;padding:22px 20px 0;}
+
+  .overlay{position:fixed;inset:0;background:rgba(20,35,55,.42);display:flex;align-items:flex-end;justify-content:center;z-index:50;animation:fade .15s ease;}
+  .sheet{background:var(--bg);width:100%;max-width:480px;border-radius:24px 24px 0 0;padding:10px 18px calc(env(safe-area-inset-bottom) + 20px);animation:up .22s cubic-bezier(.2,.8,.2,1);max-height:92vh;overflow:auto;}
+  @keyframes up{from{transform:translateY(40px);opacity:.4}to{transform:none;opacity:1}}
+  @keyframes fade{from{opacity:0}to{opacity:1}}
+  .grab{width:40px;height:5px;border-radius:3px;background:#C9D6E5;margin:0 auto 12px;}
+  .sheet-h{display:flex;align-items:center;justify-content:space-between;}
+  .sheet-h h2{margin:0;font-size:28px;font-weight:600;color:var(--navy);}
+  .x{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--navy);}
+  .x:active{background:var(--sky-l);}
+  .field{width:100%;margin-top:12px;border:1.5px solid var(--line);border-radius:14px;padding:13px 14px;font-size:17px;color:var(--ink);background:#fff;outline:none;}
+  .field:focus{border-color:var(--navy);}
+  .lbl{font-size:13px;color:var(--cat);font-weight:600;margin:16px 0 7px;}
+  .chips{display:flex;flex-wrap:wrap;gap:7px;}
+  .chip{display:flex;align-items:center;gap:6px;font-size:14px;padding:8px 12px;border-radius:18px;border:1px solid var(--line);background:#fff;color:var(--navy);}
+  .chip.on{background:var(--navy);border-color:var(--navy);color:#fff;}
+  .sugg{display:flex;gap:7px;overflow-x:auto;margin-top:10px;padding-bottom:2px;scrollbar-width:none;}
+  .sugg::-webkit-scrollbar{display:none;}
+  .sugg button{flex:0 0 auto;font-size:14px;padding:7px 12px;border-radius:18px;background:var(--sky-l);color:var(--navy);}
+  .step{display:flex;align-items:center;gap:14px;font-size:18px;font-weight:600;color:var(--navy);}
+  .step button{width:38px;height:38px;border-radius:50%;border:1.5px solid var(--line);background:#fff;font-size:20px;color:var(--navy);display:flex;align-items:center;justify-content:center;}
+  .err{color:var(--danger);font-size:13px;margin-top:6px;}
+  .row2{display:flex;gap:8px;margin-top:10px;}
+  .row2 .btn{flex:1;font-size:15px;}
+  .btn.danger{color:var(--danger);border:1.5px solid #E6C3CA;}
+
+  .share-opt{display:flex;align-items:center;gap:14px;width:100%;padding:14px;background:#fff;border:1px solid var(--line);border-radius:14px;margin-top:8px;font-size:16px;color:var(--navy);text-align:left;}
+  .share-opt .ic{width:38px;height:38px;border-radius:50%;background:var(--sky-l);display:flex;align-items:center;justify-content:center;}
+  .preview{margin-top:12px;background:#fff;border:1px dashed #B9CBE0;border-radius:14px;padding:12px 14px;font-size:14px;line-height:1.55;white-space:pre-wrap;color:var(--ink);max-height:180px;overflow:auto;}
+
+  .gate{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:30px;text-align:center;}
+  .gate h1{font-size:40px;color:var(--navy);margin:18px 0 4px;font-weight:600;}
+  .gate p{color:var(--muted);margin:0 0 18px;}
+  .gate .field{max-width:280px;text-align:center;}
+  .gate .btn{margin-top:14px;min-width:200px;}
+  .who{display:flex;gap:12px;margin-top:6px;}
+  .who button{width:130px;padding:22px 0;border-radius:18px;background:#fff;border:1.5px solid var(--line);font-size:18px;font-weight:600;color:var(--navy);}
+  .who button:active{border-color:var(--navy);}
+  .who .av{width:52px;height:52px;border-radius:50%;background:var(--navy);color:#fff;margin:0 auto 10px;display:flex;align-items:center;justify-content:center;font-size:20px;}
+
+  .toast{position:fixed;left:50%;top:calc(env(safe-area-inset-top) + 14px);transform:translateX(-50%);background:var(--navy);color:#fff;padding:11px 18px;border-radius:22px;font-size:14px;z-index:80;box-shadow:0 6px 20px rgba(20,35,55,.25);white-space:nowrap;}
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/plain" id="app-src">
+const { useState, useEffect, useMemo, useRef } = React;
+
+const SUPA_URL = "https://lkzxkovpswyllzunrqks.supabase.co";
+const SUPA_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxrenhrb3Zwc3d5bGx6dW5ycWtzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU3Nzc2NjgsImV4cCI6MjEwMTM1MzY2OH0.u8Oav9kcO5d9G9q3fi8LmSyDTIqJ6B8kgJvKeH_hVt0";
+const ACCESS_CODE = "samen"; // zelfde code als OnsBudget
+const db = supabase.createClient(SUPA_URL, SUPA_KEY);
+
+const T_ITEMS = 'boodschappen_items';
+const T_MEM = 'boodschappen_memory';
+const KEEP_MS = 24 * 3600 * 1000; // afgevinkt → na 24u weg
+const LISTS = [ { k:'samen', label:'Ejnar & Shauni' }, { k:'mama', label:'Mama' } ];
+const PEOPLE = { E:'Ejnar', S:'Shauni' };
+
+// Volgorde = volgorde in de lijst (en in de winkel)
+const CATS = [
+  { k:'groenten', label:'Groenten & fruit',  icon:'apple' },
+  { k:'proteine', label:'Proteïne',          icon:'meat' },
+  { k:'zuivel',   label:'Witte artikels',    icon:'milk' },
+  { k:'droog',    label:'Droge voeding',     icon:'bag' },
+  { k:'sauzen',   label:'Sauzen',            icon:'drop' },
+  { k:'drank',    label:'Drank',             icon:'bottle' },
+  { k:'huishoud', label:'Huishoudproducten', icon:'sparkle' },
+  { k:'andere',   label:'Andere',            icon:'dots' },
+];
+const CAT_BY = Object.fromEntries(CATS.map(c => [c.k, c]));
+
+// Herkenning: woorden zonder accenten, kleine letters
+const KW = {
+  groenten: `groente groenten fruit appel appels peer peren banaan bananen sinaasappel sinaasappelen mandarijn mandarijnen clementine citroen citroenen limoen druif druiven aardbei aardbeien framboos frambozen bosbes bosbessen bessen kiwi mango ananas meloen watermeloen perzik perziken nectarine pruim pruimen kers kersen granaatappel vijg avocado tomaat tomaten kerstomaat komkommer sla ijsberg rucola spinazie veldsla wortel wortelen wortels ui uien sjalot sjalotten look knoflook prei paprika paprikas courgette aubergine broccoli bloemkool spruitjes spruiten witloof champignon champignons paddenstoelen aardappel aardappelen aardappels patatten krieltjes selder selderij venkel radijs radijsjes biet bieten kool boontjes sperziebonen prinsessenbonen erwten erwtjes mais pompoen asperge asperges peterselie basilicum bieslook koriander munt gember salade soepgroenten wokgroenten rabarber`,
+  proteine: `kip kippen kipfilet kippenwit kippenbout kippenbouten kipreepjes filet gehakt vlees rundvlees varkensvlees kalfsvlees lamsvlees steak biefstuk entrecote rosbief spek spekjes bacon hesp ham salami worst worsten braadworst chipolata cervela schnitzel cordon kalkoen eend vis zalm tonijn kabeljauw pangasius tilapia forel makreel haring garnaal garnalen scampi scampis mosselen visstick vissticks ei eieren tofu tempeh burger burgers hamburger balletjes gehaktballen frikandel kotelet koteletten ribbetjes spareribs gyros shoarma vleesbrood americain prepare kebab charcuterie pate`,
+  zuivel: `melk halfvolle volle magere yoghurt yoghourt skyr kwark kaas gouda emmentaler mozzarella parmezaan parmesan feta brie camembert geitenkaas raclette boter room slagroom kookroom zure pudding vla karnemelk chocomelk roomkaas philadelphia mascarpone ricotta margarine zuivel actimel danone danio alpro plattekaas`,
+  droog: `pasta spaghetti penne macaroni fusilli lasagne tagliatelle noedels noodles rijst couscous bulgur quinoa bloem meel suiker zout peper brood boterhammen toast beschuit crackers cracker koekjes koek koeken chips noten cashewnoten pindas cornflakes granola muesli havermout ontbijtgranen soep bouillon chocolade snoep gist bakpoeder linzen kikkererwten bonen popcorn rozijnen wraps tortilla tortillas pistolets stokbrood baguette croissant croissants ontbijtkoek peperkoek cake pizza paneermeel kruidenmix speculoos wafels`,
+  sauzen: `saus sauzen mayonaise mayo ketchup mosterd pesto pickles andalouse samurai bearnaise cocktailsaus tartaar dressing vinaigrette azijn olie olijfolie sojasaus tomatensaus passata bolognaise curry currysaus sriracha tabasco bbq barbecuesaus jam confituur choco nutella pindakaas honing speculoospasta tomatenpuree ketjap`,
+  drank: `water spa bruiswater plat cola coca fanta sprite icetea ice tea limonade sap fruitsap appelsap sinaasappelsap bier pils jupiler stella duvel leffe wijn rose cava prosecco champagne rum whisky vodka gin tonic aperol martini porto koffie koffiebonen thee capsules pads energiedrank redbull bull aquarius chaudfontaine frisdrank drank drankjes smoothie siroop grenadine oasis`,
+  huishoud: `wcpapier toiletpapier wcrol keukenrol keukenpapier papier afwasmiddel vaatwas vaatwastabletten vaatwasblokjes wasmiddel wasverzachter waspoeder zeep handzeep douchegel shampoo conditioner tandpasta tandenborstel tandenborstels deodorant deo scheermesjes maandverband tampons luiers doekjes spons sponsen sponsjes vuilzakken vuilniszakken zakken aluminiumfolie folie bakpapier allesreiniger reiniger javel wceend kaarsen batterijen lampen lampje ontkalker glasreiniger zakdoeken tissues wattenstaafjes watjes bodylotion lotion schuursponsje dettol handgel middel`,
+};
+const UNIT_WORDS = new Set('g gr kg l ml cl dl x st stuk stuks pak pakje pakken doos doosje fles flessen zak zakje bak bakje pot potje blik blikje en in met van de het een bio'.split(' '));
+const KW_LIST = [];
+Object.entries(KW).forEach(([cat, s]) => s.split(/\s+/).forEach(w => { w = w.replace(/[^a-z]/g,''); if (w) KW_LIST.push({ kw:w, cat }); }));
+
+function normName(s){
+  return (s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'')
+    .replace(/-/g,'').replace(/[^a-z\s]/g,' ').replace(/\s+/g,' ').trim();
+}
+function nameKey(s){
+  const toks = normName(s).split(' ').filter(t => t && !UNIT_WORDS.has(t));
+  return toks.length ? toks.join(' ') : normName(s);
+}
+// Binnen een woord bepaalt het laatste deel (appelSAP = drank, tomatenSAUS = saus);
+// bij losse woorden het eerste herkende (yoghurt aardbei = zuivel, spa rood = drank)
+function guessCat(name, memory){
+  const key = nameKey(name);
+  if (!key) return null;
+  if (memory[key]) return memory[key].category;
+  const toks = key.split(' ');
+  for (let i = 0; i < toks.length; i++){
+    const t = toks[i];
+    let best = null, score = -1;
+    for (const { kw, cat } of KW_LIST){
+      let s = -1;
+      if (kw.length <= 2){ if (t === kw || t === kw+'en' || t === kw+'s') s = 300 + kw.length; }
+      else if (t.endsWith(kw)) s = 300 + kw.length;
+      else if (t.startsWith(kw)) s = 200 + kw.length;
+      else if (kw.length >= 4 && t.includes(kw)) s = 100 + kw.length;
+      if (s > score){ score = s; best = cat; }
+    }
+    if (best) return best;
+  }
+  return 'andere';
+}
+
+function buildShareText(list, items){
+  const label = LISTS.find(l => l.k === list).label;
+  const lines = [`Boodschappen ${list === 'mama' ? 'voor mama' : label}`];
+  CATS.forEach(c => {
+    const its = items.filter(i => i.category === c.k && !i.done_at);
+    if (!its.length) return;
+    lines.push('', c.label);
+    its.forEach(i => lines.push(`• ${i.qty > 1 ? i.qty + '× ' : ''}${i.name}`));
+  });
+  return lines.join('\n');
+}
+
+const ICONS = {
+  cart:   <><circle cx="9" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/><path d="M2 3h3l2.2 11.2a1.6 1.6 0 0 0 1.6 1.3h8.3a1.6 1.6 0 0 0 1.6-1.3L21 7H6"/></>,
+  apple:  <><path d="M12 7.5c-1.6-1.1-5.2-1.2-6.4 1.8-1.2 3 .1 7.4 2 9.6 1.4 1.6 3 1.9 4.4 1.1 1.4.8 3 .5 4.4-1.1 1.9-2.2 3.2-6.6 2-9.6-1.2-3-4.8-2.9-6.4-1.8z"/><path d="M12 7.5c0-2 .8-3.5 2.8-4.3"/></>,
+  meat:   <><path d="M13.6 13.8c-2.6-.6-4.2-3.4-3.4-6.2.8-2.9 4-4.5 6.8-3.6 2.9.9 4.3 4.1 3.1 6.8-1.1 2.4-3.9 3.6-6.5 3z"/><path d="M12.4 13.4 7.5 18.3"/><path d="M5.2 16.6a1.6 1.6 0 1 0 2.3 1.7 1.6 1.6 0 1 0 1.7 2.3"/></>,
+  milk:   <><path d="M8.5 2.5h7"/><path d="M9 2.5v3L7 8.5V20a1.5 1.5 0 0 0 1.5 1.5h7A1.5 1.5 0 0 0 17 20V8.5l-2-3v-3"/><path d="M7 12.5h10"/></>,
+  bag:    <><path d="M6 8h12l-1 12.2a1.8 1.8 0 0 1-1.8 1.6H8.8A1.8 1.8 0 0 1 7 20.2z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></>,
+  drop:   <><path d="M12 3.2s6 6.3 6 10.8a6 6 0 0 1-12 0c0-4.5 6-10.8 6-10.8z"/></>,
+  bottle: <><path d="M10 2.5h4"/><path d="M10.2 2.5v3.8c0 1-2.2 2-2.2 4V20a1.6 1.6 0 0 0 1.6 1.6h4.8A1.6 1.6 0 0 0 16 20v-9.7c0-2-2.2-3-2.2-4V2.5"/><path d="M8 13.5h8"/></>,
+  sparkle:<><path d="M11 3l1.7 4.3L17 9l-4.3 1.7L11 15l-1.7-4.3L5 9l4.3-1.7z"/><path d="M18 14.5l.8 1.7 1.7.8-1.7.8-.8 1.7-.8-1.7-1.7-.8 1.7-.8z"/></>,
+  dots:   <><circle cx="6" cy="12" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="18" cy="12" r="1.2"/></>,
+  plus:   <><path d="M12 5v14M5 12h14"/></>,
+  check:  <><path d="M5 12.5l4.5 4.5L19 7.5"/></>,
+  x:      <><path d="M6 6l12 12M18 6 6 18"/></>,
+  share:  <><path d="M12 15V3.5"/><path d="M8 7.5l4-4 4 4"/><path d="M6 11H5v9.5h14V11h-1"/></>,
+  copy:   <><rect x="8.5" y="8.5" width="12" height="12" rx="2"/><path d="M15.5 8.5V5a1.5 1.5 0 0 0-1.5-1.5H5A1.5 1.5 0 0 0 3.5 5v9A1.5 1.5 0 0 0 5 15.5h3.5"/></>,
+  chat:   <><path d="M4 20l1.3-3.9A8 8 0 1 1 8.2 19z"/></>,
+  swap:   <><path d="M7 4 3.5 7.5 7 11"/><path d="M3.5 7.5H17"/><path d="M17 13l3.5 3.5L17 20"/><path d="M20.5 16.5H7"/></>,
+  trash:  <><path d="M4 7h16"/><path d="M10 11v6M14 11v6"/><path d="M5.5 7l1 12.5A1.6 1.6 0 0 0 8 21h8a1.6 1.6 0 0 0 1.6-1.5l1-12.5"/><path d="M9 7V4.5h6V7"/></>,
+};
+function Icon({ name, size=20, sw=1.8 }){
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{ICONS[name]}</svg>;
+}
+
+// ---------- Toegang ----------
+function Gate({ needCode, onDone }){
+  const [code, setCode] = useState('');
+  const [err, setErr] = useState('');
+  const [step, setStep] = useState(needCode ? 'code' : 'who');
+  function submit(){
+    if (code.trim().toLowerCase() === ACCESS_CODE.toLowerCase()){ localStorage.setItem('bs_ok','1'); setStep('who'); }
+    else setErr('Foute code');
+  }
+  function pick(k){ localStorage.setItem('bs_who', k); onDone(k); }
+  return <div className="app"><div className="gate">
+    <div className="logo" style={{width:84,height:84,borderWidth:2}}><Icon name="cart" size={44} sw={1.6}/></div>
+    <h1 className="serif">Boodschappen</h1>
+    {step === 'code' ? <>
+      <p>Geef jullie code in</p>
+      <input className="field" type="password" value={code} autoFocus placeholder="••••••"
+        onChange={e => { setCode(e.target.value); setErr(''); }} onKeyDown={e => e.key === 'Enter' && submit()} />
+      {err && <div className="err">{err}</div>}
+      <button className="btn primary" style={{flex:'none'}} onClick={submit}>Verder</button>
+    </> : <>
+      <p>Wie ben jij?</p>
+      <div className="who">
+        {Object.entries(PEOPLE).map(([k, n]) => <button key={k} onClick={() => pick(k)}><div className="av">{k}</div>{n}</button>)}
+      </div>
+    </>}
+  </div></div>;
+}
+
+// ---------- Artikel toevoegen / bewerken ----------
+function ItemSheet({ mode, item, list, memory, onAdd, onSave, onMove, onDelete, onClose }){
+  const [name, setName] = useState(item ? item.name : '');
+  const [cat, setCat] = useState(item ? item.category : null); // null = automatisch
+  const [qty, setQty] = useState(item ? item.qty : 1);
+  const [err, setErr] = useState('');
+  const inputRef = useRef(null);
+
+  const autoCat = useMemo(() => name.trim() ? guessCat(name, memory) : null, [name, memory]);
+  const shownCat = cat || autoCat;
+  const key = nameKey(name);
+  const sugg = useMemo(() => {
+    if (mode !== 'add' || !key) return [];
+    return Object.values(memory)
+      .filter(m => m.name_key !== key && (m.name_key.startsWith(key) || m.name_key.includes(' ' + key)))
+      .sort((a, b) => b.times - a.times).slice(0, 6);
+  }, [key, memory, mode]);
+
+  function submit(){
+    if (!name.trim()){ setErr('Typ eerst een artikel'); inputRef.current && inputRef.current.focus(); return; }
+    const data = { name: name.trim(), category: shownCat || 'andere', qty };
+    if (mode === 'add'){
+      onAdd(data);
+      setName(''); setCat(null); setQty(1);
+      inputRef.current && inputRef.current.focus();
+    } else { onSave(data); onClose(); }
+  }
+  const other = LISTS.find(l => l.k !== list);
+
+  return <div className="overlay" onClick={e => e.target === e.currentTarget && onClose()}>
+    <div className="sheet">
+      <div className="grab"/>
+      <div className="sheet-h">
+        <h2 className="serif">{mode === 'add' ? 'Nieuw artikel' : 'Artikel'}</h2>
+        <button className="x" onClick={onClose} aria-label="Sluiten"><Icon name="x" size={22}/></button>
+      </div>
+      <input ref={inputRef} className="field" value={name} autoFocus={mode === 'add'} placeholder="Bananen"
+        enterKeyHint="done" autoCapitalize="sentences"
+        onChange={e => { setName(e.target.value); setErr(''); if (mode === 'add') setCat(null); }}
+        onKeyDown={e => e.key === 'Enter' && submit()} />
+      {err && <div className="err">{err}</div>}
+      {sugg.length > 0 && <div className="sugg">
+        {sugg.map(m => <button key={m.name_key} onClick={() => { onAdd({ name:m.name, category:m.category, qty }); setName(''); setCat(null); setQty(1); inputRef.current && inputRef.current.focus(); }}>+ {m.name}</button>)}
+      </div>}
+
+      <div className="lbl">{!cat && autoCat ? 'Herkend als' : 'Categorie'}</div>
+      <div className="chips">
+        {CATS.map(c => <button key={c.k} className={'chip' + (shownCat === c.k ? ' on' : '')} onClick={() => setCat(c.k)}>
+          <Icon name={c.icon} size={16}/>{c.label}
+        </button>)}
+      </div>
+
+      <div className="lbl">Aantal</div>
+      <div className="step">
+        <button onClick={() => setQty(q => Math.max(1, q - 1))} aria-label="Minder">−</button>
+        <span style={{minWidth:22,textAlign:'center'}}>{qty}</span>
+        <button onClick={() => setQty(q => Math.min(99, q + 1))} aria-label="Meer">+</button>
+      </div>
+
+      <button className="btn primary" style={{width:'100%',marginTop:22}} onClick={submit}>
+        {mode === 'add' ? <><Icon name="plus" size={20} sw={2.2}/>Toevoegen</> : 'Opslaan'}
+      </button>
+      {mode === 'edit' && <div className="row2">
+        <button className="btn ghost" onClick={() => { onMove(); onClose(); }}><Icon name="swap" size={18}/>Naar {other.label}</button>
+        <button className="btn danger" onClick={() => { onDelete(); onClose(); }}><Icon name="trash" size={18}/>Verwijderen</button>
+      </div>}
+    </div>
+  </div>;
+}
+
+// ---------- Delen ----------
+function ShareSheet({ text, onClose, toast }){
+  function whatsapp(){ window.open('https://wa.me/?text=' + encodeURIComponent(text), '_blank'); onClose(); }
+  function copy(){
+    const done = () => { toast('Lijst gekopieerd'); onClose(); };
+    if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(text).then(done, fallback);
+    else fallback();
+    function fallback(){
+      const ta = document.createElement('textarea'); ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select(); try { document.execCommand('copy'); } catch (e) {} ta.remove(); done();
+    }
+  }
+  function native(){ navigator.share({ text }).then(onClose, () => {}); }
+  return <div className="overlay" onClick={e => e.target === e.currentTarget && onClose()}>
+    <div className="sheet">
+      <div className="grab"/>
+      <div className="sheet-h">
+        <h2 className="serif">Lijst delen</h2>
+        <button className="x" onClick={onClose} aria-label="Sluiten"><Icon name="x" size={22}/></button>
+      </div>
+      <button className="share-opt" onClick={whatsapp}><span className="ic"><Icon name="chat"/></span>Via WhatsApp</button>
+      <button className="share-opt" onClick={copy}><span className="ic"><Icon name="copy"/></span>Kopiëren</button>
+      {navigator.share && <button className="share-opt" onClick={native}><span className="ic"><Icon name="share"/></span>Andere app…</button>}
+      <div className="preview">{text}</div>
+    </div>
+  </div>;
+}
+
+// ---------- App ----------
+function App(){
+  const [ok, setOk] = useState(localStorage.getItem('bs_ok') === '1');
+  const [who, setWho] = useState(localStorage.getItem('bs_who') || '');
+  const [tab, setTab] = useState(localStorage.getItem('bs_tab') || 'samen');
+  const [items, setItems] = useState([]);
+  const [memory, setMemory] = useState({});
+  const [loaded, setLoaded] = useState(false);
+  const [live, setLive] = useState(false);
+  const [sheet, setSheet] = useState(null); // {mode:'add'} | {mode:'edit', item}
+  const [shareOpen, setShareOpen] = useState(false);
+  const [toastMsg, setToastMsg] = useState('');
+  const [now, setNow] = useState(Date.now());
+  const toastT = useRef(null);
+  const loadT = useRef(null);
+
+  function toast(m){ setToastMsg(m); clearTimeout(toastT.current); toastT.current = setTimeout(() => setToastMsg(''), 2200); }
+  useEffect(() => { try { localStorage.setItem('bs_tab', tab); } catch (e) {} }, [tab]);
+
+  async function load(){
+    const cutoff = new Date(Date.now() - KEEP_MS).toISOString();
+    await db.from(T_ITEMS).delete().lt('done_at', cutoff);
+    const { data, error } = await db.from(T_ITEMS).select('*').order('created_at');
+    if (error){ setLive(false); return; }
+    setItems(data || []); setLoaded(true); setNow(Date.now());
+  }
+  async function loadMemory(){
+    const { data } = await db.from(T_MEM).select('*');
+    if (data) setMemory(Object.fromEntries(data.map(m => [m.name_key, m])));
+  }
+  const loadSoon = () => { clearTimeout(loadT.current); loadT.current = setTimeout(load, 250); };
+
+  useEffect(() => {
+    if (!ok || !who) return;
+    load(); loadMemory();
+    const ch = db.channel('boodschappen-rt')
+      .on('postgres_changes', { event:'*', schema:'public', table:T_ITEMS }, loadSoon)
+      .subscribe(st => setLive(st === 'SUBSCRIBED'));
+    const onVis = () => { if (document.visibilityState === 'visible'){ load(); loadMemory(); } };
+    document.addEventListener('visibilitychange', onVis);
+    const tick = setInterval(() => setNow(Date.now()), 60000);
+    return () => { db.removeChannel(ch); document.removeEventListener('visibilitychange', onVis); clearInterval(tick); };
+  }, [ok, who]);
+
+  async function remember(name, category){
+    const key = nameKey(name); if (!key) return;
+    const prev = memory[key];
+    const row = { name_key:key, name, category, times:(prev ? prev.times : 0) + 1, updated_at:new Date().toISOString() };
+    setMemory(m => ({ ...m, [key]:row }));
+    await db.from(T_MEM).upsert(row);
+  }
+
+  async function addItem({ name, category, qty }){
+    const key = nameKey(name);
+    const dup = items.find(i => i.list === tab && !i.done_at && nameKey(i.name) === key);
+    remember(name, category);
+    if (dup){
+      const nq = dup.qty + qty;
+      setItems(its => its.map(i => i.id === dup.id ? { ...i, qty:nq } : i));
+      toast(`${dup.name} stond er al — nu ${nq}×`);
+      await db.from(T_ITEMS).update({ qty:nq }).eq('id', dup.id);
+      return;
+    }
+    const tmp = { id:'tmp-' + Math.random(), list:tab, name, qty, category, added_by:who, done_at:null, created_at:new Date().toISOString() };
+    setItems(its => [...its, tmp]);
+    toast(`${name} toegevoegd`);
+    const { error } = await db.from(T_ITEMS).insert({ list:tab, name, qty, category, added_by:who });
+    if (error) toast('Niet opgeslagen — controleer je internet');
+    load();
+  }
+  async function patch(item, fields){
+    setItems(its => its.map(i => i.id === item.id ? { ...i, ...fields } : i));
+    const { error } = await db.from(T_ITEMS).update(fields).eq('id', item.id);
+    if (error){ toast('Niet opgeslagen — controleer je internet'); load(); }
+  }
+  const toggle = item => { setNow(Date.now()); patch(item, { done_at: item.done_at ? null : new Date().toISOString() }); };
+  function saveEdit(item, data){
+    if (data.category !== item.category || data.name !== item.name) remember(data.name, data.category);
+    patch(item, data);
+  }
+  function moveItem(item){
+    const to = LISTS.find(l => l.k !== item.list);
+    patch(item, { list:to.k }); toast(`Verplaatst naar ${to.label}`);
+  }
+  async function deleteItem(item){
+    setItems(its => its.filter(i => i.id !== item.id));
+    await db.from(T_ITEMS).delete().eq('id', item.id);
+  }
+  function switchWho(){
+    const n = who === 'E' ? 'S' : 'E';
+    localStorage.setItem('bs_who', n); setWho(n); toast(`Je bent nu ${PEOPLE[n]}`);
+  }
+
+  const visible = useMemo(() => items.filter(i => !i.done_at || now - Date.parse(i.done_at) < KEEP_MS), [items, now]);
+  const openCount = l => visible.filter(i => i.list === l && !i.done_at).length;
+  const listItems = visible.filter(i => i.list === tab);
+  const groups = CATS.map(c => {
+    const its = listItems.filter(i => (CAT_BY[i.category] ? i.category : 'andere') === c.k);
+    const open = its.filter(i => !i.done_at);
+    const done = its.filter(i => i.done_at).sort((a, b) => Date.parse(b.done_at) - Date.parse(a.done_at));
+    return { c, open, done };
+  }).filter(g => g.open.length || g.done.length);
+
+  if (!ok || !who) return <Gate needCode={!ok} onDone={k => { setOk(true); setWho(k); }} />;
+
+  return <div className="app">
+    <div className="hdr">
+      <div className="logo"><Icon name="cart" size={22}/></div>
+      <div>
+        <h1 className="serif">Boodschappen</h1>
+        <div className="sub"><span className={'dot' + (live ? '' : ' off')}/>{live ? 'gedeeld · live' : 'verbinden…'}</div>
+      </div>
+      <button className="me" onClick={switchWho} aria-label={`Ingelogd als ${PEOPLE[who]}, tik om te wisselen`}>{who}</button>
+    </div>
+
+    <div className="tabs">
+      {LISTS.map(l => <button key={l.k} className={'tab' + (tab === l.k ? ' on' : '')} onClick={() => setTab(l.k)}>
+        {l.label}{openCount(l.k) > 0 && <span className="n">{openCount(l.k)}</span>}
+      </button>)}
+    </div>
+
+    <div className="actions">
+      <button className="btn primary" onClick={() => setSheet({ mode:'add' })}><Icon name="plus" size={20} sw={2.2}/>{tab === 'mama' ? 'Nieuw' : 'Nieuw artikel'}</button>
+      {tab === 'mama' && <button className="btn ghost" onClick={() => { if (!openCount('mama')) { toast('De lijst van mama is leeg'); return; } setShareOpen(true); }}><Icon name="share" size={19}/>Delen</button>}
+    </div>
+
+    {loaded && groups.length === 0 && <div className="empty">
+      <Icon name="cart" size={40} sw={1.4}/>
+      <div className="serif">{tab === 'mama' ? 'Nog niets voor mama' : 'Alles in huis'}</div>
+      Tik op <b>+ Nieuw</b> om iets op de lijst te zetten.
+    </div>}
+
+    {groups.map(({ c, open, done }) => <div key={c.k}>
+      <div className="cat"><Icon name={c.icon} size={17}/>{c.label}{open.length > 0 && <span className="cnt">{open.length}</span>}</div>
+      {[...open, ...done].map(i => {
+        const left = i.done_at ? Math.min(24, Math.max(1, Math.ceil((KEEP_MS - (now - Date.parse(i.done_at))) / 3600000))) : 0;
+        return <div key={i.id} className={'it' + (i.done_at ? ' done' : '')}>
+          <button className="ck" onClick={() => toggle(i)} aria-label={i.done_at ? 'Terug op de lijst' : 'Afvinken'}>
+            {i.done_at && <Icon name="check" size={15} sw={2.8}/>}
+          </button>
+          <div className="nm" onClick={() => setSheet({ mode:'edit', item:i })}>
+            {i.qty > 1 && <span className="qty">{i.qty}×</span>}{i.name}
+          </div>
+          <span className="meta">{i.done_at ? `nog ${left}u` : (tab === 'samen' ? (i.added_by || '') : '')}</span>
+        </div>;
+      })}
+    </div>)}
+
+    {loaded && groups.length > 0 && <div className="foot">Tik op een artikel om het te wijzigen. Afgevinkte artikels verdwijnen na 24 uur.</div>}
+
+    {sheet && <ItemSheet key={sheet.item ? sheet.item.id : 'new'} mode={sheet.mode} item={sheet.item} list={tab} memory={memory}
+      onAdd={addItem}
+      onSave={d => saveEdit(sheet.item, d)}
+      onMove={() => moveItem(sheet.item)}
+      onDelete={() => deleteItem(sheet.item)}
+      onClose={() => setSheet(null)} />}
+    {shareOpen && <ShareSheet text={buildShareText('mama', listItems)} onClose={() => setShareOpen(false)} toast={toast} />}
+    {toastMsg && <div className="toast">{toastMsg}</div>}
+  </div>;
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+<script>
+(function(){
+  function showErr(m){ var r=document.getElementById('root'); if(r){ r.innerHTML='<div style="padding:26px;font:15px -apple-system,sans-serif;color:#b00;line-height:1.6">Er ging iets mis:<br><b>'+m+'</b><br><br>Herlaad de pagina.</div>'; } }
+  try{
+    if(typeof Babel==='undefined') throw new Error('Babel niet geladen — controleer je internet');
+    if(typeof React==='undefined') throw new Error('React niet geladen — controleer je internet');
+    if(typeof supabase==='undefined') throw new Error('Supabase niet geladen — controleer je internet');
+    var src=document.getElementById('app-src').textContent;
+    var out=Babel.transform(src,{presets:[['react',{runtime:'classic'}]]}).code;
+    eval(out);
+  }catch(e){ showErr(e.message||String(e)); console.error(e); }
+})();
+
+/* Automatische update (zelfde aanpak als OnsBudget): telkens de app zichtbaar wordt,
+   de nieuwste index.html ophalen en herladen als code of stijl veranderd is —
+   nooit terwijl een invulscherm (.overlay) open staat. */
+(function(){
+  var cur = document.getElementById('app-src').textContent + document.querySelector('style').textContent;
+  var busy = false, pending = false;
+  function tryReload(){
+    if(document.querySelector('.overlay')) return;
+    try{ var last=+sessionStorage.getItem('bs_upd')||0; if(Date.now()-last<60000) return; sessionStorage.setItem('bs_upd', String(Date.now())); }catch(e){}
+    location.reload();
+  }
+  function check(){
+    if(pending){ tryReload(); return; }
+    if(busy || document.visibilityState!=='visible') return;
+    busy = true;
+    fetch(location.pathname, {cache:'reload'}).then(function(r){ return r.ok ? r.text() : null; }).then(function(html){
+      if(!html) return;
+      var d = new DOMParser().parseFromString(html, 'text/html');
+      var src = d.getElementById('app-src'), st = d.querySelector('style');
+      if(src && st && src.textContent + st.textContent !== cur){ pending = true; tryReload(); }
+    }).catch(function(){}).then(function(){ busy = false; });
+  }
+  document.addEventListener('visibilitychange', check);
+  window.addEventListener('pageshow', check);
+  window.addEventListener('focus', check);
+  setInterval(check, 5*60*1000);
+  setTimeout(check, 3000);
+})();
+</script>
+</body>
+</html>

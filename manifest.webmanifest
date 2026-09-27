@@ -1,0 +1,13 @@
+{
+  "name": "Boodschappen",
+  "short_name": "Boodschappen",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#F2F6FB",
+  "theme_color": "#A9C4E0",
+  "icons": [
+    { "src": "./icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "./icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
